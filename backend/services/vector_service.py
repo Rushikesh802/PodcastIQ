@@ -26,6 +26,7 @@ if not client.collection_exists(COLLECTION_NAME):
     )
 
 # Initialize vector store
+
 vectore_store = QdrantVectorStore(
     client=client,
     collection_name=COLLECTION_NAME,
