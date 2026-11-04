@@ -1,6 +1,21 @@
-from backend.services.transcript_service import script_fetcher
+from backend.services.transcript_service import load_youtube_transcript, manual_loader
+from backend.services.chunking_service import chunking
 
-URL = 'https://youtu.be/XtGnIG38Ciw?si=95DVXGfDNbWRSazc'
+URL = 'https://youtu.be/B6PMiwqu_18?si=1U9reASPNhNa_noD'
 
-transcript = script_fetcher(url=URL)
+## indexing part
+
+# 1. transcipit script of youtube url
+# transcript = load_youtube_transcript(url=URL)
+# print(transcript)
+
+## temporary manually load the data
+
+transcript = manual_loader()
+
+chunking_data = chunking(transcript)
+
+
+
+
 

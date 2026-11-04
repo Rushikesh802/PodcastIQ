@@ -1,25 +1,58 @@
-import re
 from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api.proxies import WebshareProxyConfig
+from langchain_core.documents import Document
+from urllib.parse import urlparse, parse_qs
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 
-# extract the video id from youtube URL
-def extract_video_id(url):
-    match = re.search(r"(?:v=|youtu\.be/|embed/|shorts/|live/)([a-zA-Z0-9_-]{11})", url)
+def extract_video_id(url: str) -> str:
+    parsed = urlparse(url)
 
-    if match:
-        return match.group(1)
+    if parsed.hostname in ("youtu.be", "www.youtu.be"):
+        return parsed.path.strip("/")
+
+    if parsed.path == "/watch":
+        return parse_qs(parsed.query).get("v", [None])[0]
+
+    if parsed.path.startswith("/shorts/"):
+        return parsed.path.split("/")[2]
 
     raise ValueError("Invalid YouTube URL")
 
 
-def script_fetcher(url):
+def load_youtube_transcript(url: str) -> Document:
+    video_id = extract_video_id(url)
 
-    video_id = extract_video_id(url=url)
-
-    try:
-        ytt_api = YouTubeTranscriptApi()
-        transcrpit = ytt_api.fetch(video_id=video_id)
-
-        return transcrpit
+    api = YouTubeTranscriptApi(
+        proxy_config=WebshareProxyConfig(
+            proxy_username=os.getenv("WEBSHARE_PROXY_USERNAME"),
+            proxy_password=os.getenv("WEBSHARE_PROXY_PASSWORD"),
+        )
+    )
     
-    except : {'message': 'Youtube have some issue errror'}
+    transcript = api.fetch(video_id, languages=["en"])
+
+    text = " ".join(
+        snippet.text for snippet in transcript
+    )
+
+    return Document(
+        page_content=text,
+        metadata={
+            "source": url,
+            "video_id": video_id,
+            "language": "en",
+        },
+    )
+
+
+
+
+def manual_loader():
+    with open('backend\services\s.txt', 'r') as f:
+        data = f.read()
+
+    return data
+
