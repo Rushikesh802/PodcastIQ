@@ -1,7 +1,7 @@
 from backend.services.transcript_service import load_youtube_transcript, manual_loader
 from backend.services.chunking_service import chunking
 from backend.services.vector_service import vectore_store
-from backend.services.retrieval_service import get_context
+from backend.services.generation_service import final_output
 
 URL = 'https://youtu.be/B6PMiwqu_18?si=1U9reASPNhNa_noD'
 
@@ -28,9 +28,5 @@ def index_base(url):
 # transcript = load_youtube_transcript(url=URL)
 # print(transcript)
 
-data = get_context('what is k')
 
-print(type(data))
-
-
-
+print(final_output('who designed the lamp'))
