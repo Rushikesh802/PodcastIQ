@@ -1,5 +1,5 @@
 from langchain_core.runnables import RunnableParallel, RunnablePassthrough,  RunnableLambda
-from backend.services.vector_service import vectore_store
+from backend.services.vector_service import get_vector_store
 
 
 def format_docs(retrieved_docs):
@@ -8,7 +8,9 @@ def format_docs(retrieved_docs):
 
 
 
-retriver = vectore_store.as_retriever(search_kwargs={'k': 4})
+retriver = get_vector_store().as_retriever(search_kwargs={'k': 4})
+
+
 
 parallel_chain = RunnableParallel({
     'content': retriver | RunnableLambda(format_docs),

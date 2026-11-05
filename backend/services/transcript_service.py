@@ -25,12 +25,7 @@ def extract_video_id(url: str) -> str:
 def load_youtube_transcript(url: str) -> Document:
     video_id = extract_video_id(url)
 
-    api = YouTubeTranscriptApi(
-        proxy_config=WebshareProxyConfig(
-            proxy_username=os.getenv("WEBSHARE_PROXY_USERNAME"),
-            proxy_password=os.getenv("WEBSHARE_PROXY_PASSWORD"),
-        )
-    )
+    api = YouTubeTranscriptApi()
     
     transcript = api.fetch(video_id, languages=["en"])
 
