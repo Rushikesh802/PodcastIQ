@@ -18,6 +18,6 @@ def index_base():
 
 
 
-print(final_output('summarize the video'))
+print(final_output(user_query='summarize the video', video_id=425))
 
 
