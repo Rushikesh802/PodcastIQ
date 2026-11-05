@@ -1,5 +1,4 @@
-# from backend.services.generation_service import final_output
-from backend.services.retrieval_service import full_content
+from backend.services.generation_service import final_output
 
 URL = 'https://youtu.be/'
 
@@ -19,6 +18,6 @@ def index_base():
 
 
 
-print(full_content)
+print(final_output('what is the main idea of the video'))
 
 
