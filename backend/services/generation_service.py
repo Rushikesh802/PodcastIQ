@@ -1,4 +1,4 @@
-from backend.schemas.chat import augmentation_prompt, summarize_prompt, query_checker
+from backend.schemas.chat import augmentation_prompt, query_checker
 from backend.model.all import chat_model
 from langchain_core.output_parsers import StrOutputParser, PydanticOutputParser
 from backend.schemas.query_validator import Query
@@ -17,8 +17,6 @@ intent_chain = query_checker | chat_model | py_parser
 summarize_chain = load_summarize_chain(
     llm=chat_model,
     chain_type='map_reduce',
-    map_prompt=summarize_prompt,
-    combine_prompt=summarize_prompt,
     verbose=False
     )
 

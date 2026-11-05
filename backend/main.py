@@ -18,6 +18,6 @@ def index_base():
 
 
 
-print(final_output('what is the main idea of the video'))
+print(final_output('summarize the video'))
 
 

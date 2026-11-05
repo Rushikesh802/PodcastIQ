@@ -1,4 +1,4 @@
-from qdrant_client.models import Distance, VectorParams
+from langchain_core.documents import Document
 from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient, models
 from backend.model.all import embed_model
@@ -32,7 +32,7 @@ def get_vector_store() -> QdrantVectorStore:
         embedding=embed_model,
     )
 
-def get_full_content() -> str:
+def get_full_content() -> Document:
     records, next_page = client.scroll(
         collection_name=COLLECTION_NAME,
         limit=100,
@@ -40,10 +40,12 @@ def get_full_content() -> str:
         with_vectors=False
     )
 
-    full_content = [
-        record.payload['page_content']
+    documents = [
+        Document(
+            page_content=record.payload['page_content'],
+            )
         for record in records
     ]
 
-    return full_content
+    return documents
 
