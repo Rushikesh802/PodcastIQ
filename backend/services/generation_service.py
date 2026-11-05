@@ -19,7 +19,7 @@ def summarize_video(inputs: dict):
      summarize_chain = summarize_prompt | chat_model | str_parser
      return summarize_chain.invoke({'content': content})
 
-summarize_chain = RunnableLambda(summarize_video())
+summarize_chain = RunnableLambda(summarize_video)
 
 # important default rag chain
 rag_chain = parallel_chain | augmentation_prompt | chat_model | str_parser
