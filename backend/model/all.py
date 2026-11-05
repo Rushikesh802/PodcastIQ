@@ -1,5 +1,4 @@
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
-from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 from langchain_openrouter import ChatOpenRouter
 

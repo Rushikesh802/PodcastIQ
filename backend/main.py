@@ -1,19 +1,20 @@
-from backend.services.generation_service import final_output
-from backend.services.transcript_service import load_youtube_transcript
+from fastapi import FastAPI
 
-URL = 'https://youtu.be/k0Ka-deab1s?si=_OY4G7_p0eF1PbAS'
+app = FastAPI(title='PodcastIQ')
 
-def index_base():
 
-    from backend.services.transcript_service import load_youtube_transcript, manual_loader
-    from backend.services.chunking_service import chunking
-    from backend.services.vector_service import vectore_store
+@app.get('/')
+def home():
+    return {'message': 'Welcome to PodcastIQ, Your Yt summarization app'}
 
-    transcript = load_youtube_transcript(url=URL)
-   
-    chunking_data = chunking(transcript.page_content)
+@app.get('/health')
+def health():
+    return {'message': 'api working fine',
+            'metadata': {
+                'status_code': 200,
+                'Developer': 'Rushikesh Patil'
+            }}
 
-    vectore_store.add_documents(chunking_data)
 
 
 
