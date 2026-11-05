@@ -41,13 +41,3 @@ def load_youtube_transcript(url: str) -> Document:
             "language": "en",
         },
     )
-
-
-
-
-def manual_loader():
-    with open('backend\services\s.txt', 'r') as f:
-        data = f.read()
-
-    return data
-

@@ -49,3 +49,6 @@ def get_full_content() -> Document:
 
     return documents
 
+def clean_vector_store():
+    vs = get_vector_store()
+    vs.delete_collection()
