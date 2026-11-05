@@ -5,6 +5,7 @@ from backend.schemas.query_validator import Query
 from langchain_core.runnables import RunnableBranch, RunnableLambda
 from backend.services.vector_service import get_full_content
 from backend.services.retrieval_service import parallel_chain
+from langchain_classic.chains.summarize import load_summarize_chain
 
 
 ## Parser for output
@@ -13,19 +14,27 @@ str_parser = StrOutputParser()
 
 # intent of user checking chain
 intent_chain = query_checker | chat_model | py_parser 
+summarize_chain = load_summarize_chain(
+    llm=chat_model,
+    chain_type='map_reduce',
+    map_prompt=summarize_prompt,
+    combine_prompt=summarize_prompt,
+    verbose=False
+    )
+
 
 def summarize_video(inputs: dict):
      content = get_full_content()
-     summarize_chain = summarize_prompt | chat_model | str_parser
-     return summarize_chain.invoke({'content': content})
+     result = summarize_chain.invoke({'input_documents': content})
+     return result['output_text']
 
-summarize_chain = RunnableLambda(summarize_video)
+summarize_runnable_lambda= RunnableLambda(summarize_video)
 
 # important default rag chain
 rag_chain = parallel_chain | augmentation_prompt | chat_model | str_parser
 
 main_chain = RunnableBranch(
-         (lambda x:x['intent'] == 'summarize', summarize_chain),
+         (lambda x:x['intent'] == 'summarize', summarize_runnable_lambda),
 
          #default chain
          rag_chain
