@@ -4,18 +4,20 @@ from backend.services.vector_service import get_vector_store
 
 
 def format_docs(retrieved_docs):
-    context_text = "\n\n".join(
+    return "\n\n".join(
         doc.page_content for doc in retrieved_docs
     )
-    return context_text
+    
+
+def get_retrieval_chain(video_id: str):
+    retriever = get_vector_store(video_id=video_id).as_retriever(
+        search_kwargs={'k': 3}
+    )
 
 
-retriever = get_vector_store().as_retriever(
-    search_kwargs={'k': 3}
-)
+    return RunnableParallel({
+        'content': itemgetter('query') | retriever | RunnableLambda(format_docs),
+        'query': itemgetter('query')
+    })
 
-
-parallel_chain = RunnableParallel({
-    'content': itemgetter('query') | retriever | RunnableLambda(format_docs),
-    'query': itemgetter('query')
-})
+   

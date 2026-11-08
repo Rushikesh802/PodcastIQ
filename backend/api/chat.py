@@ -5,9 +5,9 @@ router = APIRouter()
 
 
 @router.post('/chat')
-def chat_with_llm(q: str) -> str:
+def chat(q: str, video_id: str) -> str:
     try:
-        return final_output(user_query=q, video_id='1')
+        return final_output(user_query=q, video_id=video_id)
         
 
     except Exception as e:

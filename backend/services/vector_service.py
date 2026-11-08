@@ -18,10 +18,10 @@ client = QdrantClient(url=url,
 
 
 
-def get_vector_store(collection_name: str) -> QdrantVectorStore:
-    if not client.collection_exists(collection_name):
+def get_vector_store(video_id: str) -> QdrantVectorStore:
+    if not client.collection_exists(collection_name=video_id):
         client.create_collection(
-            collection_name=collection_name,
+            collection_name=video_id,
             vectors_config=models.VectorParams(
                 size=3072,
                 distance=models.Distance.COSINE,
@@ -29,7 +29,7 @@ def get_vector_store(collection_name: str) -> QdrantVectorStore:
         )
     return QdrantVectorStore(
         client=client,
-        collection_name=collection_name,
+        collection_name=video_id,
         embedding=embed_model,
     )
 

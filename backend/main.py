@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from backend.api import chat
+from backend.api import  ingestion
 
 app = FastAPI(title='PodcastIQ')
 
@@ -18,6 +18,12 @@ def health():
 
 
 #routing files
-app.include_router(chat.router)
+
+# Query endpoint
+
+
+# Data Ingestion endpoint
+app.include_router(ingestion.router)
+
 
 
