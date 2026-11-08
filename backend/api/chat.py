@@ -5,9 +5,9 @@ router = APIRouter()
 
 
 @router.post('/chat')
-def chat(q: str, video_id: str) -> str:
+def chat(query: str, video_id: str) -> str:
     try:
-        return final_output(user_query=q, video_id=video_id)
+        return final_output(user_query=query, video_id=video_id)
         
 
     except Exception as e:
