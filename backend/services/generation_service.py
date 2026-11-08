@@ -1,23 +1,30 @@
-from backend.schemas.chat import augmentation_prompt, query_checker
+import re
+
+from backend.schemas.chat import augmentation_prompt
 from backend.model.all import chat_model
-from langchain_core.output_parsers import StrOutputParser, PydanticOutputParser
-from backend.schemas.query_validator import Query
-from langchain_core.runnables import RunnableBranch, RunnableLambda
-from backend.services.vector_service import get_full_content
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnableLambda
 from backend.services.retrieval_service import get_retrieval_chain
-from langchain_classic.chains.summarize import load_summarize_chain
 from backend.services.summarization_service import summarize_video
 
 
-## Parser for output
-py_parser = PydanticOutputParser(pydantic_object=Query)
 str_parser = StrOutputParser()
 
-# intent of user checking chain
-intent_chain = query_checker | chat_model | py_parser 
+SUMMARY_INTENT_PATTERNS = (
+    re.compile(r"\b(?:summar(?:y|ies|ize|ise|izing|ising|ized|ised))\b"),
+    re.compile(r"\b(?:overview|recap|tl\s*;?\s*dr)\b"),
+    re.compile(r"\b(?:key|main|important)\s+(?:points|takeaways|highlights)\b"),
+    re.compile(r"\b(?:main|key)\s+ideas\b"),
+    re.compile(r"\bin\s+a\s+nutshell\b"),
+    re.compile(r"\bwhat(?:'s| is)\s+(?:this|the)\s+(?:video|podcast)\s+about\b"),
+    re.compile(r"\btell\s+me\s+about\s+the\s+(?:video|podcast)\b"),
+)
 
 
-summarize_runnable_lambda= RunnableLambda(summarize_video)
+def is_summary_request(query: str) -> bool:
+    normalized_query = " ".join(query.casefold().split())
+    return any(pattern.search(normalized_query) for pattern in SUMMARY_INTENT_PATTERNS)
+
 
 # important default rag chain
 def genrate_rag_answer(inputs: dict):
@@ -28,20 +35,12 @@ def genrate_rag_answer(inputs: dict):
 
 rag_runnable = RunnableLambda(genrate_rag_answer)
 
-#conditional execution
-main_chain = RunnableBranch(
-         (lambda x:x['intent'] == 'summarize', summarize_runnable_lambda),
-
-         #default chain
-         rag_runnable
-    )
 
 def final_output(user_query: str, video_id: str):
+    if is_summary_request(user_query):
+        return summarize_video(video_id=video_id)
 
-    intent_result = intent_chain.invoke({'query': user_query})
-
-    return main_chain.invoke({
-         'query': user_query,
-         'intent': intent_result.query,
-         'video_id': video_id
-         })
+    return rag_runnable.invoke({
+        'query': user_query,
+        'video_id': video_id,
+    })
