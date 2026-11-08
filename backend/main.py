@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from backend.api import chat
 
 app = FastAPI(title='PodcastIQ')
 
@@ -16,7 +17,7 @@ def health():
             }}
 
 
+#routing files
+app.include_router(chat.router)
 
-
-# print(final_output(user_query='why lamp mention in the video', video_id=425))
 

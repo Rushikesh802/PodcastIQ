@@ -12,15 +12,16 @@ url = os.getenv('QUDRANT_URL')
 api_key = os.getenv('QUDRANT_API_KEY')
 
 
-COLLECTION_NAME = 'yt-script'
-client = QdrantClient(url=url, api_key=api_key)
+client = QdrantClient(url=url,
+                      api_key=api_key,
+                      timeout=40)
 
 
-@lru_cache(maxsize=1)
-def get_vector_store() -> QdrantVectorStore:
-    if not client.collection_exists(COLLECTION_NAME):
+
+def get_vector_store(collection_name: str) -> QdrantVectorStore:
+    if not client.collection_exists(collection_name):
         client.create_collection(
-            collection_name=COLLECTION_NAME,
+            collection_name=collection_name,
             vectors_config=models.VectorParams(
                 size=3072,
                 distance=models.Distance.COSINE,
@@ -28,13 +29,13 @@ def get_vector_store() -> QdrantVectorStore:
         )
     return QdrantVectorStore(
         client=client,
-        collection_name=COLLECTION_NAME,
+        collection_name=collection_name,
         embedding=embed_model,
     )
 
-def get_full_content() -> Document:
+def get_full_content(collection_name: str) -> Document:
     records, next_page = client.scroll(
-        collection_name=COLLECTION_NAME,
+        collection_name=collection_name,
         limit=100,
         with_payload=True,
         with_vectors=False
@@ -49,6 +50,6 @@ def get_full_content() -> Document:
 
     return documents
 
-def clean_vector_store():
-    vs = get_vector_store()
-    vs.delete_collection()
+def clean_vector_store(video_id: str):
+    if client.collection_exists(video_id):
+        client.delete_collection(collection_name=video_id)
