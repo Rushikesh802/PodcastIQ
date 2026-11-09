@@ -1,127 +1,179 @@
+
 import streamlit as st
 import requests
 
-URL = 'http://127.0.0.1:8000'
+URL = "http://127.0.0.1:8000"
 
 st.set_page_config(
-    page_title='PodcastIQ',
-    page_icon='🤖',
-    layout='centered'
+    page_title="PodcastIQ",
+    page_icon="🤖",
+    layout="centered"
 )
 
-try:
-    response = requests.get(URL, timeout=5)
-    response.raise_for_status()
 
-except requests.ConnectionError:
-    st.error("API not connected. Please check the backend service.")
+# ---------------- SESSION STATE ----------------
 
-except requests.Timeout:
-    st.error("Backend request timed out. Please try again.")
-
-except requests.HTTPError as exc:
-    st.error(f"Backend returned an error: {exc}")
-
-if 'video_id' not in st.session_state:
+if "video_id" not in st.session_state:
     st.session_state.video_id = None
 
-if 'chat_history' not in st.session_state:
+if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-st.title('Welcome to PoadcastIQ')
 
+# ---------------- API HEALTH CHECK ----------------
 
-yt_url = st.text_input('Enter Your Youtube link to parse')
-
-
-## data ingestion
-if st.button('Submit'):
-
+@st.cache_data(ttl=10)
+def check_backend():
     try:
-        
-        with st.spinner(text='Processing your video. Please wait...'):
+        response = requests.get(URL, timeout=5)
+        response.raise_for_status()
+        return True
+    except requests.RequestException:
+        return False
 
-            response = requests.post(url=f'{URL}/data_ingestion/', 
-                                            params={'url': yt_url},
-                                            timeout=(5, 600))
-            response.raise_for_status()
-            data = response.json()
-            st.session_state.video_id = data['video_id']
-            st.session_state.chat_history = []
 
-        st.success('video processed successfully!')
+if not check_backend():
+    st.error("🔴 Backend not connected. Start your FastAPI server.")
+    st.stop()
 
-    except requests.Timeout:
-        st.error(
-            'Data ingestion exceeded the 10-minute request limit. '
-            'The backend may still be processing; check its logs before retrying.'
-        )
-    except requests.HTTPError as error:
+
+# ---------------- HEADER ----------------
+
+st.title("🤖 PodcastIQ")
+st.caption("Your AI-powered YouTube podcast assistant")
+
+st.divider()
+
+
+# ---------------- DATA INGESTION ----------------
+
+st.subheader("🎥 Process YouTube Video")
+
+yt_url = st.text_input(
+    "Enter YouTube URL",
+    placeholder="https://www.youtube.com/watch?v=..."
+)
+
+if st.button("Process Video", use_container_width=True):
+
+    if not yt_url.strip():
+        st.warning("Please enter a YouTube URL.")
+
+    else:
         try:
-            detail = error.response.json().get('detail', error.response.text)
-        except ValueError:
-            detail = error.response.text
-        st.error(f'Data ingestion failed ({error.response.status_code}): {detail}')
-    except requests.RequestException as error:
-        st.error(f'Data ingestion failed: {error}')
+            with st.spinner("Processing your video..."):
 
-
-
-## chat interface
-if st.session_state.video_id:
-
-    st.divider()
-    st.subheader('💬 Ask Questions')
-
-    for role, message in st.session_state.chat_history:
-        with st.chat_message(role):
-            st.write(message)
-
-    query = st.chat_input('Start Now Asking Questions')
-
-    if query:
-
-        st.session_state.chat_history.append(('user', query))
-
-        with st.chat_message('user'):
-            st.write(query)
-
-        try:
-            with st.spinner('Please wait while genrating response'):
-                response = requests.post(url=f'{URL}/chat',
-                                        params={'video_id': st.session_state.video_id,
-                                                'query': query},
-                                        timeout=180)
+                response = requests.post(
+                    f"{URL}/data_ingestion/",
+                    params={"url": yt_url},
+                    timeout=(5, 600)
+                )
 
                 response.raise_for_status()
 
                 data = response.json()
 
-                ans = data
+                st.session_state.video_id = data["video_id"]
+                st.session_state.chat_history = []
 
-            st.session_state.chat_history.append(('assistant', ans))
+            st.success("Video processed successfully!")
 
+        except requests.Timeout:
+            st.error("Processing timed out. Check backend logs.")
 
-            with st.chat_message(name='assistant'):
-                st.write(ans)
-        except requests.HTTPError as error:
+        except requests.HTTPError as exc:
             try:
-                detail = error.response.json().get('detail', error.response.text)
+                detail = exc.response.json().get(
+                    "detail",
+                    exc.response.text
+                )
             except ValueError:
-                detail = error.response.text
-            st.error(f'Chat request failed ({error.response.status_code}): {detail}')
-        except requests.RequestException as error:
-            st.error(f'Could not reach the chat service: {error}')
+                detail = exc.response.text
 
-        if st.button('New video'):
+            st.error(f"Ingestion failed: {detail}")
 
-            try:
-                response = requests.delete(url=f'{URL}', params={'video_id': st.session_state.video_id})
-                response.raise_for_status()
+        except requests.RequestException as exc:
+            st.error(f"API error: {exc}")
 
-            except requests.RequestException as exc:
-                st.error(f'Please refresh the page!: {exc}')
-                st.stop()
 
-            st.session_state.video = None
-            st.rerun()
+# ---------------- CHAT INTERFACE ----------------
+
+if st.session_state.video_id:
+
+    st.divider()
+    st.subheader("💬 Ask Your Podcast")
+
+    for role, message in st.session_state.chat_history:
+
+        with st.chat_message(role):
+            st.write(message)
+
+    query = st.chat_input("Ask anything about this video...")
+
+    if query:
+
+        st.session_state.chat_history.append(
+            ("user", query)
+        )
+
+        with st.chat_message("user"):
+            st.write(query)
+
+        try:
+            with st.chat_message("assistant"):
+
+                with st.spinner("Generating response..."):
+
+                    response = requests.post(
+                        f"{URL}/chat",
+                        params={
+                            "video_id": st.session_state.video_id,
+                            "query": query
+                        },
+                        timeout=180
+                    )
+
+                    response.raise_for_status()
+
+                    data = response.json()
+
+                    # Adjust according to your FastAPI response schema
+                    ans = (
+                        data.get("answer")
+                        if isinstance(data, dict)
+                        else data
+                    )
+
+                    st.write(ans)
+
+            st.session_state.chat_history.append(
+                ("assistant", ans)
+            )
+
+        except requests.RequestException as exc:
+            st.error(f"Chat request failed: {exc}")
+
+
+    # ---------------- NEW VIDEO ----------------
+
+    if st.button("➕ Process Another Video"):
+
+        try:
+            response = requests.delete(
+                f"{URL}/data_ingestion/",
+                params={
+                    "video_id": st.session_state.video_id
+                },
+                timeout=10
+            )
+
+            response.raise_for_status()
+
+        except requests.RequestException as exc:
+            st.error(f"Could not delete previous video: {exc}")
+            st.stop()
+
+        st.session_state.video_id = None
+        st.session_state.chat_history = []
+
+        st.rerun()
