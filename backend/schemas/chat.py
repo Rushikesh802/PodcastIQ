@@ -41,25 +41,3 @@ provided in the transcript context.
 )
 
 
-
-map_prompt = PromptTemplate.from_template(
-    """Summarize this transcript excerpt.
-Use only the provided information.
-Preserve important ideas, facts and conclusions.
-
-Transcript:
-{text}
-
-Summary:"""
-)
-
-reduce_prompt = PromptTemplate.from_template(
-    """Create a coherent video summary using these summaries.
-Combine repeated ideas and preserve important details.
-Do not introduce outside information.
-
-Summaries:
-{text}
-
-Final summary:"""
-)

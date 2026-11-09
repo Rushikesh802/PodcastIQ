@@ -3,6 +3,24 @@ import requests
 
 URL = 'http://127.0.0.1:8000'
 
+st.set_page_config(
+    page_title='PodcastIQ',
+    page_icon='🤖',
+    layout='centered'
+)
+
+try:
+    response = requests.get(URL, timeout=5)
+    response.raise_for_status()
+
+except requests.ConnectionError:
+    st.error("API not connected. Please check the backend service.")
+
+except requests.Timeout:
+    st.error("Backend request timed out. Please try again.")
+
+except requests.HTTPError as exc:
+    st.error(f"Backend returned an error: {exc}")
 
 if 'video_id' not in st.session_state:
     st.session_state.video_id = None
@@ -10,11 +28,6 @@ if 'video_id' not in st.session_state:
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 
-st.set_page_config(
-    page_title='PodcastIQ',
-    page_icon='🤖',
-    layout='centered'
-)
 st.title('Welcome to PoadcastIQ')
 
 
@@ -38,8 +51,8 @@ if st.button('Submit'):
 
         st.success('video processed successfully!')
 
-    except requests.RequestException:
-        raise st.error('Data ingestion failed!!')
+    except requests.RequestException as error:
+        st.error(f'Data ingestion failed: {error}')
 
 
 

@@ -7,6 +7,5 @@ load_dotenv()
 embed_model = init_embeddings(provider='google_genai',model='gemini-embedding-2')
 
 chat_model = init_chat_model(model_provider='mistralai', model='ministral-3b-2512')
-summarize_model = init_chat_model(model_provider='google_genai', model='gemini-3.8-flash')
 
 
