@@ -2,7 +2,6 @@ from langchain_core.documents import Document
 from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient, models
 from backend.model.all import embed_model
-from dotenv import load_dotenv
 import os
 from backend.model.all import embed_model
 
@@ -60,5 +59,6 @@ def get_full_content(video_id: str) -> list[Document]:
     return documents
 
 def clean_vector_store(video_id: str):
-    if client.collection_exists(video_id):
+    if client.collection_exists(collection_name=video_id):
         client.delete_collection(collection_name=video_id)
+

@@ -160,7 +160,7 @@ if st.session_state.video_id:
 
         try:
             response = requests.delete(
-                f"{URL}/data_ingestion/",
+                f"{URL}/delete/",
                 params={
                     "video_id": st.session_state.video_id
                 },
