@@ -14,7 +14,7 @@ api_key = os.getenv('QUDRANT_API_KEY')
 
 client = QdrantClient(url=url,
                       api_key=api_key,
-                      timeout=40)
+                      timeout=120)
 
 
 
@@ -33,13 +33,22 @@ def get_vector_store(video_id: str) -> QdrantVectorStore:
         embedding=embed_model,
     )
 
-def get_full_content(collection_name: str) -> Document:
-    records, next_page = client.scroll(
-        collection_name=collection_name,
-        limit=100,
-        with_payload=True,
-        with_vectors=False
-    )
+def get_full_content(video_id: str) -> list[Document]:
+    records = []
+    offset = None
+
+    while True:
+        page, next_page = client.scroll(
+            collection_name=video_id,
+            limit=100,
+            offset=offset,
+            with_payload=True,
+            with_vectors=False
+        )
+        records.extend(page)
+        if next_page is None:
+            break
+        offset = next_page
 
     documents = [
         Document(

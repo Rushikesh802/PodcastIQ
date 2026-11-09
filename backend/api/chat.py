@@ -18,8 +18,7 @@ def chat(query: str, video_id: str) -> str:
         if isinstance(e, httpx.HTTPStatusError) and e.response.status_code == 429:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail='The Mistral API rate limit has been reached. Wait before trying again.',
+                detail='A rate limit was reached by an external service used to process this chat. Please try again later.',
             ) from e
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                             detail='Chat generation failed. Check the backend logs for details.') from e
-

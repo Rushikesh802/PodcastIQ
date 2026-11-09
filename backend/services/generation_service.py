@@ -11,7 +11,7 @@ from backend.services.summarization_service import summarize_video
 str_parser = StrOutputParser()
 
 SUMMARY_INTENT_PATTERNS = (
-    re.compile(r"\b(?:summar(?:y|ies|ize|ise|izing|ising|ized|ised))\b"),
+    re.compile(r"\bsumm?ar(?:y|ies|ize|ise|izing|ising|ized|ised)\b"),
     re.compile(r"\b(?:overview|recap|tl\s*;?\s*dr)\b"),
     re.compile(r"\b(?:key|main|important)\s+(?:points|takeaways|highlights)\b"),
     re.compile(r"\b(?:main|key)\s+ideas\b"),
