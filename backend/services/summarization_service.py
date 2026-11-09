@@ -1,48 +1,63 @@
-from langchain_classic.chains.summarize import load_summarize_chain
+import asyncio
+import logging
+from time import perf_counter
+
 from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from backend.schemas.chat import map_prompt, reduce_prompt
 from backend.model.all import summarize_model
 from backend.services.vector_service import get_full_content
 
-map_prompt = PromptTemplate.from_template(
-    """Summarize this excerpt from a video transcript. Use only information stated
-in the excerpt. Capture its main ideas and important supporting details without
-adding outside knowledge.
+logger = logging.getLogger(__name__)
 
-Transcript excerpt:
-{text}
+MAX_CONCURRENCY = 5
 
-Excerpt summary:"""
-)
-
-combine_prompt = PromptTemplate.from_template(
-    """Write a clear, concise summary of the video using only the transcript
-summaries below. Combine repeated ideas, preserve important details and
-relationships between ideas, and do not add information that is not present.
-
-Transcript summaries:
-{text}
-
-Video summary:"""
-)
-
-summarize_chain = load_summarize_chain(
-    llm=summarize_model,
-    chain_type="map_reduce",
-    map_prompt=map_prompt,
-    combine_prompt=combine_prompt,
-)
+map_chain = map_prompt | summarize_model | StrOutputParser()
+reduce_chain = reduce_prompt | summarize_model | StrOutputParser()
 
 
-def summarize_video(video_id: str) -> str:
-    documents = get_full_content(video_id=video_id)
+async def summarize_video(video_id: str) -> str:
+    start = perf_counter()
+
+    documents = await asyncio.to_thread(
+        get_full_content,
+        video_id=video_id
+    )
 
     if not documents:
-        raise ValueError(
-            f"No transcript documents found for {video_id}"
-        )
+        raise ValueError(f"No transcript found: {video_id}")
 
-    result = summarize_chain.invoke({
-        "input_documents": documents
+    semaphore = asyncio.Semaphore(MAX_CONCURRENCY)
+
+    async def map_document(document):
+        async with semaphore:
+            return await map_chain.ainvoke({
+                "text": document.page_content
+            })
+
+    map_start = perf_counter()
+
+    summaries = await asyncio.gather(
+        *(map_document(doc) for doc in documents)
+    )
+
+    map_duration = perf_counter() - map_start
+
+    reduce_start = perf_counter()
+
+    final_summary = await reduce_chain.ainvoke({
+        "text": "\n\n".join(summaries)
     })
 
-    return result["output_text"]
+    reduce_duration = perf_counter() - reduce_start
+
+    logger.info(
+        "Summarization | chunks=%d | map=%.2fs | "
+        "reduce=%.2fs | total=%.2fs",
+        len(documents),
+        map_duration,
+        reduce_duration,
+        perf_counter() - start
+    )
+
+    return final_summary

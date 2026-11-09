@@ -40,20 +40,26 @@ provided in the transcript context.
     input_variables=['content', 'query']
 )
 
-query_checker = PromptTemplate(
-    template='''
-    You are an intelligent intent classifier for a YouTube video RAG system.
-    
-    Analyze the user's query and determine their intent. If the user explicitly asks to summarize,
-    summarize, give an overview, or provide the key points of the video, return ONLY a video summary.
-    
-    User Query:
-    {query}
-{format_instruction}
-''',
 
-input_variables=['query'],
-partial_variables={
-    'format_instruction': py_parser.get_format_instructions()
-}
+
+map_prompt = PromptTemplate.from_template(
+    """Summarize this transcript excerpt.
+Use only the provided information.
+Preserve important ideas, facts and conclusions.
+
+Transcript:
+{text}
+
+Summary:"""
+)
+
+reduce_prompt = PromptTemplate.from_template(
+    """Create a coherent video summary using these summaries.
+Combine repeated ideas and preserve important details.
+Do not introduce outside information.
+
+Summaries:
+{text}
+
+Final summary:"""
 )
