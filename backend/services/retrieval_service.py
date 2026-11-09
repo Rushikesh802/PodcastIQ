@@ -11,7 +11,7 @@ def format_docs(retrieved_docs):
 
 def get_retrieval_chain(video_id: str):
     retriever = get_vector_store(video_id=video_id).as_retriever(
-        search_kwargs={'k': 3}
+        search_kwargs={'k': 4}
     )
 
 

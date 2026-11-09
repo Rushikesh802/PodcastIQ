@@ -1,8 +1,7 @@
 from langchain_core.prompts import PromptTemplate
-from backend.schemas.query_validator import Query
 from langchain_core.output_parsers import PydanticOutputParser
 
-py_parser = PydanticOutputParser(pydantic_object=Query)
+
 
 augmentation_prompt = PromptTemplate(
     template='''

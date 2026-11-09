@@ -6,7 +6,7 @@ app = FastAPI(title='PodcastIQ')
 
 @app.get('/')
 def home():
-    return {'message': 'Welcome to PodcastIQ, Your Yt summarization app'}
+    return {'message': 'Welcome to PodcastIQ, Your long video Q&A app'}
 
 @app.get('/health')
 def health():
