@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from backend.api import ingestion, chat
+from backend.api import ingestion, chat, clean_collection
 
 app = FastAPI(title='PodcastIQ')
 
@@ -25,5 +25,6 @@ app.include_router(chat.router)
 # Data Ingestion endpoint
 app.include_router(ingestion.router)
 
-
+# collection data delte endpoint
+app.include_router(clean_collection.router)
 

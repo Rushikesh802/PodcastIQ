@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-embed_model = init_embeddings(provider='google_genai',model='gemini-embedding-2')
+embed_model = init_embeddings(provider='cohere', model='embed-v5.0-fast')
 
 chat_model = init_chat_model(model_provider='mistralai', model='ministral-3b-2512')
 

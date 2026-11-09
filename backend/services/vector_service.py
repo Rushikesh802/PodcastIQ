@@ -3,10 +3,10 @@ from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient, models
 from backend.model.all import embed_model
 from dotenv import load_dotenv
-from functools import lru_cache
 import os
+from backend.model.all import embed_model
 
-load_dotenv()
+
 
 url = os.getenv('QUDRANT_URL')
 api_key = os.getenv('QUDRANT_API_KEY')
@@ -23,7 +23,7 @@ def get_vector_store(video_id: str) -> QdrantVectorStore:
         client.create_collection(
             collection_name=video_id,
             vectors_config=models.VectorParams(
-                size=3072,
+                size=2048,
                 distance=models.Distance.COSINE,
             ),
         )

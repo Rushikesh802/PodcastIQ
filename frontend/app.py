@@ -43,7 +43,7 @@ if st.button('Submit'):
 
             response = requests.post(url=f'{URL}/data_ingestion/', 
                                             params={'url': yt_url},
-                                            timeout=60)
+                                            timeout=(5, 600))
             response.raise_for_status()
             data = response.json()
             st.session_state.video_id = data['video_id']
@@ -51,6 +51,17 @@ if st.button('Submit'):
 
         st.success('video processed successfully!')
 
+    except requests.Timeout:
+        st.error(
+            'Data ingestion exceeded the 10-minute request limit. '
+            'The backend may still be processing; check its logs before retrying.'
+        )
+    except requests.HTTPError as error:
+        try:
+            detail = error.response.json().get('detail', error.response.text)
+        except ValueError:
+            detail = error.response.text
+        st.error(f'Data ingestion failed ({error.response.status_code}): {detail}')
     except requests.RequestException as error:
         st.error(f'Data ingestion failed: {error}')
 
@@ -101,3 +112,16 @@ if st.session_state.video_id:
             st.error(f'Chat request failed ({error.response.status_code}): {detail}')
         except requests.RequestException as error:
             st.error(f'Could not reach the chat service: {error}')
+
+        if st.button('New video'):
+
+            try:
+                response = requests.delete(url=f'{URL}', params={'video_id': st.session_state.video_id})
+                response.raise_for_status()
+
+            except requests.RequestException as exc:
+                st.error(f'Please refresh the page!: {exc}')
+                st.stop()
+
+            st.session_state.video = None
+            st.rerun()

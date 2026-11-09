@@ -4,7 +4,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 def chunking(transcipt: list):
 
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000, 
+        chunk_size=600, 
         chunk_overlap=120
     )
 

@@ -13,7 +13,7 @@ def ingest_data(url: str):
     print('Step: 2. Completed: data chunking successfully!!')
     vs = get_vector_store(video_id=video_id)
     print(f'Step: 3. Completed:vector database access succssfully with collection name: {video_id}')
-    vs.add_documents(documents=chunking_data, batch_size=32)
+    vs.add_documents(documents=chunking_data, batch_size=16)
     print(f'Step: 4. Completed: Data added in QDRANT succssfully with Collection name: {video_id}')
 
     return video_id
