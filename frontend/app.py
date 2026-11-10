@@ -1,8 +1,11 @@
 
-import streamlit as st
+import logging
 import requests
+import streamlit as st
 
 URL = "http://127.0.0.1:8000"
+
+logger = logging.getLogger(__name__)
 
 st.set_page_config(
     page_title="PodcastIQ",
@@ -13,21 +16,27 @@ st.set_page_config(
 
 # ---------------- SESSION STATE ----------------
 
-if "video_id" not in st.session_state:
-    st.session_state.video_id = None
+DEFAULT_STATE = {
+    "video_id": None,
+    "chat_history": [],
+    "video_url": None,
+}
 
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+for key, value in DEFAULT_STATE.items():
+    if key not in st.session_state:
+        st.session_state[key] = value
 
 
 # ---------------- API HEALTH CHECK ----------------
 
 @st.cache_data(ttl=10)
 def check_backend():
+
     try:
         response = requests.get(URL, timeout=5)
         response.raise_for_status()
         return True
+
     except requests.RequestException:
         return False
 
@@ -36,15 +45,16 @@ if not check_backend():
     st.error("🔴 Backend not connected. Start your FastAPI server.")
     st.stop()
 
-# ---------------- STREAMING GENRATOR ----------------
+
+# ---------------- API HELPERS ----------------
 
 def response_generator(query: str, video_id: str):
 
     with requests.post(
         f"{URL}/chat",
-        params={
-            "video_id": video_id,
-            "query": query
+        json={
+            "query": query,
+            "video_id": video_id
         },
         stream=True,
         timeout=(5, 180)
@@ -64,16 +74,42 @@ def response_generator(query: str, video_id: str):
                 yield chunk
 
 
+def ingest_video(url: str):
+
+    response = requests.post(
+        f"{URL}/data_ingestion",
+        json={"url": url},
+        timeout=(5, 600)
+    )
+
+    response.raise_for_status()
+
+    return response.json()
+
+
+def delete_video(video_id: str):
+
+    response = requests.delete(
+        f"{URL}/delete/",
+        params={"video_id": video_id},
+        timeout=10
+    )
+
+    response.raise_for_status()
+
 
 # ---------------- HEADER ----------------
 
 st.title("🤖 PodcastIQ")
-st.caption("Your AI-powered YouTube podcast assistant")
+
+st.caption(
+    "Your AI-powered YouTube podcast assistant"
+)
 
 st.divider()
 
 
-# ---------------- DATA INGESTION ----------------
+# ---------------- VIDEO INGESTION ----------------
 
 st.subheader("🎥 Process YouTube Video")
 
@@ -85,46 +121,61 @@ yt_url = st.text_input(
 if st.button("Process Video", use_container_width=True):
 
     if not yt_url.strip():
+
         st.warning("Please enter a YouTube URL.")
 
     else:
+
         try:
+
             with st.spinner("Processing your video..."):
 
-                response = requests.post(
-                    f"{URL}/data_ingestion/",
-                    params={"url": yt_url},
-                    timeout=(5, 600)
-                )
-
-                response.raise_for_status()
-
-                data = response.json()
+                data = ingest_video(yt_url.strip())
 
                 st.session_state.video_id = data["video_id"]
+                st.session_state.video_url = yt_url.strip()
                 st.session_state.chat_history = []
 
             st.success("Video processed successfully!")
 
         except requests.Timeout:
+
             st.error("Processing timed out. Check backend logs.")
 
         except requests.HTTPError as exc:
+
             try:
                 detail = exc.response.json().get(
                     "detail",
                     exc.response.text
                 )
-            except ValueError:
-                detail = exc.response.text
+            except (ValueError, AttributeError):
+                detail = str(exc)
 
             st.error(f"Ingestion failed: {detail}")
 
         except requests.RequestException as exc:
+
             st.error(f"API error: {exc}")
 
+        except (KeyError, ValueError) as exc:
 
-# ---------------- CHAT INTERFACE ----------------
+            st.error(f"Invalid ingestion response: {exc}")
+
+
+# ---------------- VIDEO INFORMATION ----------------
+
+if st.session_state.video_id:
+
+    st.divider()
+
+    st.subheader("🎬 Current Video")
+
+    st.video(st.session_state.video_url)
+
+    st.caption(
+        f"Video ID: {st.session_state.video_id}"
+    )
 
 
 # ---------------- CHAT INTERFACE ----------------
@@ -132,13 +183,14 @@ if st.button("Process Video", use_container_width=True):
 if st.session_state.video_id:
 
     st.divider()
+
     st.subheader("💬 Ask Your Podcast")
 
-    # Display previous messages
+    # Display chat history
     for role, message in st.session_state.chat_history:
 
         with st.chat_message(role):
-            st.write(message)
+            st.markdown(message)
 
     query = st.chat_input(
         "Ask anything about this video..."
@@ -151,49 +203,57 @@ if st.session_state.video_id:
         )
 
         with st.chat_message("user"):
-            st.write(query)
+            st.markdown(query)
 
         try:
 
             with st.chat_message("assistant"):
-                ans = ""
+
                 response_placeholder = st.empty()
+                answer = ""
 
                 for chunk in response_generator(
                     query=query,
                     video_id=st.session_state.video_id
                 ):
-                    ans += chunk
-                    response_placeholder.markdown(ans)
 
-            # Save complete streamed response
+                    answer += chunk
+                    response_placeholder.markdown(answer + "▌")
+
+                response_placeholder.markdown(answer)
+
             st.session_state.chat_history.append(
-                ("assistant", ans)
+                ("assistant", answer)
             )
 
         except requests.RequestException as exc:
+
             st.error(f"Chat request failed: {exc}")
 
-    # ---------------- NEW VIDEO ----------------
 
-    if st.button("➕ Process Another Video"):
+# ---------------- NEW VIDEO ----------------
+
+if st.session_state.video_id:
+
+    st.divider()
+
+    if st.button(
+        "➕ Process Another Video",
+        use_container_width=True
+    ):
 
         try:
-            response = requests.delete(
-                f"{URL}/delete/",
-                params={
-                    "video_id": st.session_state.video_id
-                },
-                timeout=10
-            )
 
-            response.raise_for_status()
+            with st.spinner("Resetting previous video..."):
+
+                delete_video(st.session_state.video_id)
+
+            st.session_state.video_id = None
+            st.session_state.video_url = None
+            st.session_state.chat_history = []
+
+            st.rerun()
 
         except requests.RequestException as exc:
+
             st.error(f"Could not delete previous video: {exc}")
-            st.stop()
-
-        st.session_state.video_id = None
-        st.session_state.chat_history = []
-
-        st.rerun()

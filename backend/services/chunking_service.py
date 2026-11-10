@@ -1,13 +1,13 @@
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
 
 
-def chunking(transcipt: list):
+def chunking(document: Document) -> list[Document]:
 
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=600, 
-        chunk_overlap=120
+        chunk_size=800,
+        chunk_overlap=120,
+        add_start_index=True
     )
 
-    return splitter.create_documents(texts=[transcipt])
-
-
+    return splitter.split_documents([document])

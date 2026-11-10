@@ -21,6 +21,8 @@ dependencies = [
     "pandas>=2.2.3,<3",
     "streamlit>=1.40.0",
     "youtube-transcript-api>=1.2.0",
+    "yt-dlp>=2026.10.26",
+    "langchain-core>=1.7.4",
 ]
 
 [tool.uv.build-backend]

@@ -6,10 +6,18 @@ from typing import AsyncIterator
 
 str_parser = StrOutputParser()
 
-async def final_output(user_query: str, video_id: str) -> AsyncIterator[str]:
 
-    rag_chain = (get_retrieval_chain(video_id=video_id) | augmentation_prompt | chat_model | str_parser)
+async def final_output(
+    user_query: str,
+    video_id: str
+) -> AsyncIterator[str]:
 
-    async for chunk in rag_chain.astream({'query': user_query}):
+    rag_chain = (
+        get_retrieval_chain(video_id=video_id) | augmentation_prompt | chat_model | str_parser
+    )
+
+    async for chunk in rag_chain.astream({
+        "query": user_query
+    }):
         if chunk:
             yield chunk
