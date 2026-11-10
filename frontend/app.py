@@ -3,7 +3,7 @@ import logging
 import requests
 import streamlit as st
 
-URL = "http://127.0.0.1:8000"
+URL = "https://podcastiq.fastapicloud.dev"
 
 logger = logging.getLogger(__name__)
 
