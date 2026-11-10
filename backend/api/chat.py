@@ -1,5 +1,5 @@
 import logging
-
+from fastapi.responses import StreamingResponse
 import httpx
 from fastapi import APIRouter, HTTPException, status
 from backend.services.generation_service import final_output
@@ -9,16 +9,27 @@ logger = logging.getLogger(__name__)
 
 
 @router.post('/chat')
-def chat(query: str, video_id: str) -> str:
-    try:
-        return final_output(user_query=query, video_id=video_id)
+async def chat(query: str, video_id: str):
 
-    except Exception as e:
-        logger.exception("Chat generation failed for video_id=%s", video_id)
-        if isinstance(e, httpx.HTTPStatusError) and e.response.status_code == 429:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail='A rate limit was reached by an external service used to process this chat. Please try again later.',
-            ) from e
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                            detail='Chat generation failed. Check the backend logs for details.') from e
+    async def generate():
+        try:
+            async for chunk in final_output(user_query=query, video_id=video_id):
+               
+                    yield chunk
+
+        except Exception:
+            logger.exception(
+                "Streaming failed for video_id=%s",
+                video_id
+            )
+            raise
+
+
+    return StreamingResponse(
+        generate(),
+        media_type='text/plain',
+         headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no"
+        }
+    )

@@ -36,6 +36,34 @@ if not check_backend():
     st.error("🔴 Backend not connected. Start your FastAPI server.")
     st.stop()
 
+# ---------------- STREAMING GENRATOR ----------------
+
+def response_generator(query: str, video_id: str):
+
+    with requests.post(
+        f"{URL}/chat",
+        params={
+            "video_id": video_id,
+            "query": query
+        },
+        stream=True,
+        timeout=(5, 180)
+    ) as response:
+
+        response.raise_for_status()
+
+        for chunk in response.iter_content(
+            chunk_size=None,
+            decode_unicode=True
+        ):
+
+            if chunk:
+                if isinstance(chunk, bytes):
+                    chunk = chunk.decode("utf-8")
+
+                yield chunk
+
+
 
 # ---------------- HEADER ----------------
 
@@ -98,17 +126,23 @@ if st.button("Process Video", use_container_width=True):
 
 # ---------------- CHAT INTERFACE ----------------
 
+
+# ---------------- CHAT INTERFACE ----------------
+
 if st.session_state.video_id:
 
     st.divider()
     st.subheader("💬 Ask Your Podcast")
 
+    # Display previous messages
     for role, message in st.session_state.chat_history:
 
         with st.chat_message(role):
             st.write(message)
 
-    query = st.chat_input("Ask anything about this video...")
+    query = st.chat_input(
+        "Ask anything about this video..."
+    )
 
     if query:
 
@@ -120,39 +154,25 @@ if st.session_state.video_id:
             st.write(query)
 
         try:
+
             with st.chat_message("assistant"):
+                ans = ""
+                response_placeholder = st.empty()
 
-                with st.spinner("Generating response..."):
+                for chunk in response_generator(
+                    query=query,
+                    video_id=st.session_state.video_id
+                ):
+                    ans += chunk
+                    response_placeholder.markdown(ans)
 
-                    response = requests.post(
-                        f"{URL}/chat",
-                        params={
-                            "video_id": st.session_state.video_id,
-                            "query": query
-                        },
-                        timeout=180
-                    )
-
-                    response.raise_for_status()
-
-                    data = response.json()
-
-                    # Adjust according to your FastAPI response schema
-                    ans = (
-                        data.get("answer")
-                        if isinstance(data, dict)
-                        else data
-                    )
-
-                    st.write(ans)
-
+            # Save complete streamed response
             st.session_state.chat_history.append(
                 ("assistant", ans)
             )
 
         except requests.RequestException as exc:
             st.error(f"Chat request failed: {exc}")
-
 
     # ---------------- NEW VIDEO ----------------
 
